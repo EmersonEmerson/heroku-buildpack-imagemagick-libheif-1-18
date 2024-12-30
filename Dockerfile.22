@@ -4,7 +4,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # See env vars below to update package versions
 # * $LIBIMAGEMAGICK_VERSION
 # * $LIBWEBP_VERSION
-# * $LIBHIEF_VERSION
+# * $LIBHEIF_VERSION
 # * $LIBDE265_VERSION
 
 RUN apt-get update && apt-get install -y \
@@ -21,12 +21,12 @@ RUN curl -L https://github.com/strukturag/libde265/releases/download/v$LIBDE265_
   && make install
 
 # https://github.com/strukturag/libheif/releases
-ENV LIBHIEF_VERSION=1.15.2
+ENV LIBHEIF_VERSION=1.18.2
 
-RUN curl -L https://github.com/strukturag/libheif/releases/download/v$LIBHIEF_VERSION/libheif-$LIBHIEF_VERSION.tar.gz | tar zx \
-  && cd libheif-$LIBHIEF_VERSION \
-  && ./autogen.sh \
-  && ./configure --prefix=/usr/src/imagemagick \
+RUN curl -L https://github.com/strukturag/libheif/releases/download/v$LIBHEIF_VERSION/libheif-$LIBHEIF_VERSION.tar.gz | tar zx \
+  && cd libheif-$LIBHEIF_VERSION \
+  && mkdir build && cd build \
+  && cmake -DCMAKE_INSTALL_PREFIX=/usr/src/imagemagick .. \
   && make \
   && make install
 
@@ -40,8 +40,9 @@ RUN cd /opt \
   && make \
   && make install
 
-
-ENV PATH="/usr/src/imagemagick/bin:$PATH:\$PATH"
+# Update environment variables to include pkg-config path
+ENV PKG_CONFIG_PATH="/usr/src/imagemagick/lib/pkgconfig:$PKG_CONFIG_PATH"
+ENV PATH="/usr/src/imagemagick/bin:$PATH"
 ENV CPPPATH="/usr/src/imagemagick/include:$CPPPATH"
 ENV CPATH="/usr/src/imagemagick/include:$CPATH"
 ENV LIBRARY_PATH="/usr/src/imagemagick/lib:$LIBRARY_PATH"
@@ -57,7 +58,12 @@ RUN cd /usr/src/ \
   && wget https://github.com/ImageMagick/ImageMagick/archive/refs/tags/$IMAGEMAGICK_VERSION.tar.gz \
   && tar xf $IMAGEMAGICK_VERSION.tar.gz \
   && cd ImageMagick-7* \
-  && ./configure --with-heic=yes --with-webp=yes --prefix=/usr/src/imagemagick \
+  && ./configure \
+    --with-heic=yes \
+    --with-webp=yes \
+    --prefix=/usr/src/imagemagick \
+    CPPFLAGS="-I/usr/src/imagemagick/include" \
+    LDFLAGS="-L/usr/src/imagemagick/lib" \
   && make \
   && make install
 
